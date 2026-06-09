@@ -5,6 +5,7 @@ import { GameDefine } from './Define';
 import { Striker } from './Striker';
 import { Puck } from './Puck';
 import { GameManager } from './GameManager';
+import TrackingManager, { TrackingEvents } from './utils/TrackingManager';
 const { ccclass, property } = _decorator;
 
 // MiniGame Carrom Ball main logic
@@ -39,6 +40,10 @@ export class Game extends Component {
 
     tweenTut1: Tween = new Tween();
     tweenTut2: Tween = new Tween();
+
+    gameTimer:number = GameDefine.gameTimer;
+    isGameTimerstarted: boolean = false;
+    // timerCountdown: number;
 
     start() {
         this.GameMgr = find('Canvas/GameManager');
@@ -142,6 +147,13 @@ export class Game extends Component {
             case 'None':
                 this.disableTutorial();
                 break
+        }
+
+        if(this.isGameTimerstarted){
+            this.gameTimer-= deltaTime;
+            if(this.gameTimer <= 0 ){
+                this.gameOver('enemy');
+            }
         }
     }
 
@@ -247,6 +259,10 @@ export class Game extends Component {
         this.tutorialHand.active = false;
     }
 
+    startGametimer(){
+        this.isGameTimerstarted = true;
+    }
+
     showStrikerTutorialHand() {
         if (!this.tutorialHand || !this.striker || !this.spriteLoader) {
             return;
@@ -337,6 +353,8 @@ export class Game extends Component {
 
         const gm = this.GameMgr.getComponent(GameManager);
         if (gm) {
+            //Tracking Event: Complete
+            TrackingManager.SendEventTracking(TrackingEvents.COMPLETE);
             gm.showEndscreen(winner);
         }
     }

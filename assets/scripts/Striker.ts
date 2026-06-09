@@ -5,6 +5,7 @@
     find
 } from 'cc';
 import { Game } from './Game';
+import TrackingManager, { TrackingEvents } from './utils/TrackingManager';
 const { ccclass } = _decorator;
 
 enum StrikerState {
@@ -62,6 +63,9 @@ export class Striker extends Component {
     }
 
     private _onTouchStart(event: EventTouch) {
+        //Tracking Event: FirstInteraction
+        TrackingManager.SendEventTracking(TrackingEvents.FIRSTINTERACTION);
+
         if (this._state !== StrikerState.Idle) return;
         if (!this._isStrikerStopped()) return;
         this._touchActive = true;

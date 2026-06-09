@@ -6,7 +6,8 @@ const { ccclass, property } = _decorator;
 export class Puck extends Component {
     
     tableWidth: number;
-    holeThreshold:number = 167;
+    tableHeight: number;
+    holeRadius: number = 140; // radius of pocket holes
     color: string = 'white';
 
     GameMgr:Node = null;
@@ -26,10 +27,10 @@ export class Puck extends Component {
     }
 
     calculateHoleThreshold() {
-        this.tableWidth = this.GameMgr.getComponent(GameManager).table.getComponent(UITransform).width;
-        const w = this.tableWidth/2;
-        const offset = this.tableWidth/6;
-        this.holeThreshold = w - offset;
+        const table = this.GameMgr.getComponent(GameManager).table;
+        const uiTransform = table.getComponent(UITransform);
+        this.tableWidth = uiTransform.width;
+        this.tableHeight = uiTransform.height;
     }
 
     update(deltaTime: number) {
@@ -39,23 +40,31 @@ export class Puck extends Component {
     }
 
     private checkHoleAndDestroy(): boolean {
-        const pos: Vec3 = this.node.getPosition();
-        const x = pos.x;
-        const y = pos.y;
-        const t = this.holeThreshold;
+        const puckPos: Vec3 = this.node.getPosition();
+        const table = this.GameMgr.getComponent(GameManager).table;
+        const tablePos: Vec3 = table.getPosition();
         
-        let o = this.GameMgr.getComponent(GameManager).currentOrientation;
-        const offsetPortrait = o == 'portrait' ? -100 : 0;
-        // emit pocket event then destroy if inside one of the four pockets
-        // top-left
-        if (x < -t && y > t+offsetPortrait) { this.node.emit('pocketed', { color: this.color }); this.node.destroy(); return true; }
-        // top-right
-        if (x > t && y > t+offsetPortrait) { this.node.emit('pocketed', { color: this.color }); this.node.destroy(); return true; }
-        // bottom-left
-        if (x < -t && y < -t-offsetPortrait+10) { this.node.emit('pocketed', { color: this.color }); this.node.destroy(); return true; }
-        // bottom-right
-        if (x > t && y < -t-offsetPortrait+10) { this.node.emit('pocketed', { color: this.color }); this.node.destroy(); return true; }
-
+        // Calculate 4 corner positions of the table
+        const halfWidth = this.tableWidth / 2;
+        const halfHeight = this.tableHeight / 2;
+        
+        const corners = [
+            new Vec3(tablePos.x - halfWidth, tablePos.y + halfHeight, 0), // top-left
+            new Vec3(tablePos.x + halfWidth, tablePos.y + halfHeight, 0), // top-right
+            new Vec3(tablePos.x - halfWidth, tablePos.y - halfHeight, 0), // bottom-left
+            new Vec3(tablePos.x + halfWidth, tablePos.y - halfHeight, 0)  // bottom-right
+        ];
+        
+        // Check if puck is within hole radius of any corner
+        for (const corner of corners) {
+            const distance = Vec3.distance(puckPos, corner);
+            if (distance < this.holeRadius) {
+                this.node.emit('pocketed', { color: this.color });
+                this.node.destroy();
+                return true;
+            }
+        }
+        
         return false;
     }
 

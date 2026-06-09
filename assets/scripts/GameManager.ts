@@ -3,6 +3,8 @@ import { SpriteLoader } from './utils/SpriteLoader';
 import { NodeCreator } from './utils/NodeCreator';
 import { GameDefine } from './Define';
 import { Table } from './Table';
+import TrackingManager, { TrackingEvents } from './utils/TrackingManager';
+import { Game } from './Game';
 const { ccclass, property } = _decorator;
 
 @ccclass('GameManager')
@@ -39,6 +41,7 @@ export class GameManager extends Component {
 
     currentOrientation: 'portrait' | 'landscape' = null;
     flowState: 'prestart' | 'ingame' | 'gameover' = 'prestart';
+    enableClickCTA: boolean = true;
 
     onLoad() {
         this.ingame.active = false;
@@ -105,10 +108,10 @@ export class GameManager extends Component {
             }
             //set Table
             if(this.table){
-                this.table.setPosition(0, -100);
+                this.table.setPosition(0, 0);
             }
             if (this.startLabel) {
-                this.startLabel.setPosition(0, 300, 0);
+                this.startLabel.setPosition(0, 500, 0);
             }
         }
 
@@ -137,26 +140,35 @@ export class GameManager extends Component {
                 this.spriteLoader.loadSpriteFrame('downloadBtn', GameDefine.images.download_btn),
             ]);
 
-            this.bg = this.nodeCreator.createNode('bg', { spriteFrame: this.spriteLoader.loadedAssets.get('bg') });
-            this.background.addChild(this.bg);
-
-            this.table = this.nodeCreator.createNode('table', { spriteFrame: this.spriteLoader.loadedAssets.get('table'), position: { x: 0, y: -10 } });
-            this.table.addComponent(Table);
-
-            this.ingame.addChild(this.table);
-            this.ingame.active = true;
-            this.foreground.active = true;
-            this.createEndscreen();
-            if (this.loadingLabel) {
-                Tween.stopAllByTarget(this.loadingLabel);
-                this.loadingLabel.active = false;
-            }
-
-            this.createStartText();
+           
         } catch (error) {
             console.error('Error:', error);
         }
 
+        setTimeout(() => {
+            this.handleDisplay();
+        }, 500);
+    }
+
+    handleDisplay(){
+        //Tracking Event: Impression or Start
+        TrackingManager.SendEventTracking(TrackingEvents.START);
+        this.bg = this.nodeCreator.createNode('bg', { spriteFrame: this.spriteLoader.loadedAssets.get('bg') });
+        this.background.addChild(this.bg);
+
+        this.table = this.nodeCreator.createNode('table', { spriteFrame: this.spriteLoader.loadedAssets.get('table'), position: { x: 0, y: -10 } });
+        this.table.addComponent(Table);
+
+        this.ingame.addChild(this.table);
+        this.ingame.active = true;
+        this.foreground.active = true;
+        this.createEndscreen();
+        if (this.loadingLabel) {
+            Tween.stopAllByTarget(this.loadingLabel);
+            this.loadingLabel.active = false;
+        }
+
+        this.createStartText();
         this.handleResize();
     }
 
@@ -204,6 +216,10 @@ export class GameManager extends Component {
     }
 
     private onTouchStart(event: EventTouch) {
+        //Tracking Event: FirstInteraction
+        TrackingManager.SendEventTracking(TrackingEvents.FIRSTINTERACTION,(()=>{
+            this.ingame.getComponent(Game).startGametimer();
+        }));
         this.hideStartLabel();
     }
 
@@ -368,8 +384,22 @@ export class GameManager extends Component {
     }
 
     private onEndscreenAction() {
-        console.log('Endscreen CTA clicked');
-        window.location.reload();
+        if(this.enableClickCTA){
+            //Tracking Event: CTA Clicked
+            TrackingManager.SendEventTracking(TrackingEvents.CTACLICK, (()=>{
+                if((<any>window).mraid){
+                    (<any>window).mraid.open("https://www.google.com")
+                }else{
+                    window.open("https://www.google.com")
+                }
+            }))
+            this.enableClickCTA = false;
+        }
+
+        //prevent spammed click
+        setTimeout(() => {
+            this.enableClickCTA = true;
+        }, 1000);
     }
 
     update(deltaTime: number) {}
