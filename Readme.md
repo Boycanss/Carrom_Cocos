@@ -3,6 +3,9 @@
 ### Self-contained HTML (index.single.html)
 > Simply double-click the file to open it on browser.
 
+### Apploving compliancy
+> I think overall this submission already cover all of the constraints. I also tested it using https://p.applov.in/playablePreview?create=1
+
 ### How to run the Cocos Creator Project
 > I use Cocos Creator editor version 3.8.5
 > 1. Download that editor version
